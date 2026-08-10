@@ -186,6 +186,7 @@ export const CubeMatrixCanvas: React.FC<Props> = ({ settings }) => {
         uOpacity: { value: 0.0 },
         uFlashDissipate: { value: 0.0 },
         uFlashPeak: { value: 0.0 },
+        uLogoReveal: { value: 0.0 },
       },
       vertexShader: `
         varying vec2 vUv;
@@ -207,6 +208,7 @@ export const CubeMatrixCanvas: React.FC<Props> = ({ settings }) => {
         uniform float uOpacity;
         uniform float uFlashDissipate;
         uniform float uFlashPeak;
+        uniform float uLogoReveal;
         varying vec2 vUv;
 
         void main() {
@@ -252,7 +254,12 @@ export const CubeMatrixCanvas: React.FC<Props> = ({ settings }) => {
           float outerBloomAlpha = clamp(outerSamples, 0.0, 1.0);
 
           // Rapid falloff into absolute black outside the A contour and immediate halo
-          float totalAlpha = max(coreAlpha, max(innerHaloAlpha * 0.50, outerBloomAlpha * 0.18) * uFlashPeak) * alphaMask * uOpacity;
+          float flashAlpha = max(
+            coreAlpha,
+            max(innerHaloAlpha * 0.50, outerBloomAlpha * 0.18) * uFlashPeak
+          );
+
+          float totalAlpha = flashAlpha * alphaMask * uOpacity;
           if (totalAlpha < 0.002) discard;
 
           // Original base logo colors (unmodified Logo_A.png asset)
@@ -277,7 +284,7 @@ export const CubeMatrixCanvas: React.FC<Props> = ({ settings }) => {
           flashRgb = mix(flashRgb, icyWhiteCore, smoothstep(0.1, 0.8, coreAlpha));
 
           // Smooth transition during flash peak & decay back to original logo colors
-          vec3 finalRgb = mix(baseRgb, flashRgb, uFlashPeak);
+          vec3 finalRgb = mix(flashRgb, baseRgb, uLogoReveal);
 
           gl_FragColor = vec4(finalRgb, totalAlpha);
         }
@@ -456,6 +463,7 @@ export const CubeMatrixCanvas: React.FC<Props> = ({ settings }) => {
           logoOverlayMat.uniforms.uOpacity.value = 0.0;
           logoOverlayMat.uniforms.uStompScale.value = 1.0;
           logoOverlayMat.uniforms.uFlashPeak.value = 0.0;
+          logoOverlayMat.uniforms.uLogoReveal.value = 0.0;
         } else if (t < 15.20) {
           // 14.85s -> 15.20s: Flash ignites smoothly in 350ms as voxels vanish
           logoOverlayMesh.visible = true;
@@ -466,6 +474,7 @@ export const CubeMatrixCanvas: React.FC<Props> = ({ settings }) => {
           logoOverlayMat.uniforms.uOpacity.value = 1.0;
           logoOverlayMat.uniforms.uStompScale.value = scaleExpand;
           logoOverlayMat.uniforms.uFlashPeak.value = flashPeak;
+          logoOverlayMat.uniforms.uLogoReveal.value = 0.0;
         } else if (t < 15.55) {
           // 15.20s -> 15.55s: Flash holds peak icy white mask with localized bloom
           logoOverlayMesh.visible = true;
@@ -475,6 +484,7 @@ export const CubeMatrixCanvas: React.FC<Props> = ({ settings }) => {
           logoOverlayMat.uniforms.uOpacity.value = 1.0;
           logoOverlayMat.uniforms.uStompScale.value = scaleExpand;
           logoOverlayMat.uniforms.uFlashPeak.value = 1.0;
+          logoOverlayMat.uniforms.uLogoReveal.value = 0.0;
         } else if (t <= 16.25) {
           // 15.55s -> 16.25s: Flash dissipates over 700ms, revealing official logo underneath with AIDN blue #004DF3
           logoOverlayMesh.visible = true;
@@ -485,6 +495,7 @@ export const CubeMatrixCanvas: React.FC<Props> = ({ settings }) => {
           logoOverlayMat.uniforms.uOpacity.value = 1.0;
           logoOverlayMat.uniforms.uStompScale.value = scaleContract;
           logoOverlayMat.uniforms.uFlashPeak.value = flashPeak;
+          logoOverlayMat.uniforms.uLogoReveal.value = 0.0;
         } else {
           logoOverlayMesh.visible = true;
           logoOverlayMat.uniforms.uProgress.value = 1.0;
@@ -492,6 +503,7 @@ export const CubeMatrixCanvas: React.FC<Props> = ({ settings }) => {
           logoOverlayMat.uniforms.uOpacity.value = fadeOut;
           logoOverlayMat.uniforms.uStompScale.value = 1.0;
           logoOverlayMat.uniforms.uFlashPeak.value = 0.0;
+          logoOverlayMat.uniforms.uLogoReveal.value = 1.0;
         }
       }
 
