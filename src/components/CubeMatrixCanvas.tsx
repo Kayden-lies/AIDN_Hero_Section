@@ -360,17 +360,57 @@ export const CubeMatrixCanvas: React.FC<Props> = ({ settings }) => {
       }
     };
 
-    textureLoader.load(
-      logoAUrl,
-      (tex) => {
-        applyTexture(tex);
-        console.log(`Logo_A texture loaded successfully from asset URL: ${logoAUrl}`);
-      },
-      undefined,
-      (err) => {
-        console.error(`Failed to load logo asset (${logoAUrl}):`, err);
-      }
-    );
+    const loadLogoTexture = () => {
+      const filename = logoAUrl.split('/').pop() || 'Logo_A.png';
+      const baseUrl = import.meta.env.BASE_URL || './';
+      const cleanBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+      
+      const pathname = window.location.pathname;
+      const dirPath = pathname.endsWith('/') ? pathname : pathname.substring(0, pathname.lastIndexOf('/') + 1);
+
+      const candidates = [
+        logoAUrl,
+        `${cleanBase}assets/${filename}`,
+        `${cleanBase}Logo_A.png`,
+        `${dirPath}assets/${filename}`,
+        `${dirPath}Logo_A.png`,
+        './Logo_A.png',
+        'Logo_A.png',
+      ];
+
+      const uniqueCandidates = Array.from(new Set(candidates.filter(Boolean)));
+      let candidateIndex = 0;
+
+      const tryNextCandidate = () => {
+        if (candidateIndex >= uniqueCandidates.length) {
+          console.error('All Logo_A asset candidate URLs failed to load.');
+          return;
+        }
+
+        const src = uniqueCandidates[candidateIndex++];
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+
+        img.onload = () => {
+          console.log(`Logo_A texture loaded successfully from candidate: ${src}`);
+          const tex = new THREE.Texture(img);
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.needsUpdate = true;
+          applyTexture(tex);
+        };
+
+        img.onerror = (e) => {
+          console.warn(`Failed to load Logo_A from candidate: ${src}, trying next...`, e);
+          tryNextCandidate();
+        };
+
+        img.src = src;
+      };
+
+      tryNextCandidate();
+    };
+
+    loadLogoTexture();
 
     // Window Resize Handler
     const handleResize = () => {
